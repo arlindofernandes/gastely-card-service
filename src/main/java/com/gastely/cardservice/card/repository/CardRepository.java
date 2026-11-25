@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.gastely.cardservice.card.domain.Card;
+import com.gastely.cardservice.card.domain.CardStatus;
 
 public interface CardRepository extends JpaRepository<Card, UUID> {
 
@@ -15,10 +16,20 @@ public interface CardRepository extends JpaRepository<Card, UUID> {
 
     Page<Card> findAllByTenantIdAndOwnerId(UUID tenantId, UUID ownerId, Pageable pageable);
 
-    boolean existsByTenantIdAndOwnerIdAndFinancialInstitutionIgnoreCaseAndLastFourDigits(
+    boolean existsByTenantIdAndOwnerIdAndFinancialInstitutionIgnoreCaseAndLastFourDigitsAndStatusNot(
             UUID tenantId,
             UUID ownerId,
             String financialInstitution,
-            String lastFourDigits
+            String lastFourDigits,
+            CardStatus status
+    );
+
+    boolean existsByTenantIdAndOwnerIdAndFinancialInstitutionIgnoreCaseAndLastFourDigitsAndIdNotAndStatusNot(
+            UUID tenantId,
+            UUID ownerId,
+            String financialInstitution,
+            String lastFourDigits,
+            UUID id,
+            CardStatus status
     );
 }
