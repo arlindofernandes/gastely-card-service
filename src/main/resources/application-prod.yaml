@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    url: ${CARD_DB_URL}
+    username: ${CARD_DB_USERNAME}
+    password: ${CARD_DB_PASSWORD}
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
