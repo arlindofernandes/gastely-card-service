@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,12 +16,17 @@ import com.gastely.cardservice.card.domain.Card;
 import com.gastely.cardservice.card.domain.CardStatus;
 import com.gastely.cardservice.card.repository.CardRepository;
 
+import org.hibernate.exception.ConstraintViolationException;
+
 import lombok.RequiredArgsConstructor;
 
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class CardService {
+
+    private static final String CARD_UNIQUE_INDEX = "ux_cards_owner_institution_last_four_digits";
+    private static final String UNIQUE_VIOLATION_SQL_STATE = "23505";
 
     private final CardRepository cardRepository;
 
@@ -44,7 +50,7 @@ public class CardService {
                 request.favorite()
         );
 
-        return toResponse(cardRepository.save(card));
+        return toResponse(saveCard(card));
     }
 
     public CardResponse findById(UUID tenantId, UUID ownerId, UUID cardId) {
@@ -75,7 +81,7 @@ public class CardService {
                 request.favorite()
         );
 
-        return toResponse(card);
+        return toResponse(saveCard(card));
     }
 
     @Transactional
@@ -135,6 +141,34 @@ public class CardService {
 
     private String normalizeOptionalText(String value) {
         return value == null ? null : value.trim();
+    }
+
+    private Card saveCard(Card card) {
+        try {
+            return cardRepository.saveAndFlush(card);
+        } catch (DataIntegrityViolationException exception) {
+            if (isCardUniqueConstraintViolation(exception)) {
+                throw new DuplicateCardException();
+            }
+
+            throw exception;
+        }
+    }
+
+    private boolean isCardUniqueConstraintViolation(DataIntegrityViolationException exception) {
+        Throwable cause = exception;
+
+        while (cause != null) {
+            if (cause instanceof ConstraintViolationException constraintViolationException
+                    && CARD_UNIQUE_INDEX.equals(constraintViolationException.getConstraintName())
+                    && UNIQUE_VIOLATION_SQL_STATE.equals(constraintViolationException.getSQLException().getSQLState())) {
+                return true;
+            }
+
+            cause = cause.getCause();
+        }
+
+        return false;
     }
 
     private CardResponse toResponse(Card card) {
